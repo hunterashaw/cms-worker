@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    html,
+    body {
+        margin: 0;
+        min-height: 100vh;
+        overscroll-behavior: none;
+    }
+
+    #root {
+        @apply bg-neutral-100 min-h-screen;
+    }
+
+    button,
+    .button {
+        @apply flex gap-2 items-center px-4 py-2 border border-neutral-300 bg-neutral-100 hover:bg-neutral-200 transition text-sm font-medium rounded-md disabled:opacity-50 disabled:cursor-default select-none cursor-pointer;
+    }
+
+    input,
+    .input {
+        @apply px-4 py-2 text-sm rounded-md border border-neutral-300;
+    }
+
+    select {
+        @apply px-4 py-2 text-sm rounded-md outline outline-1 outline-neutral-300 border-r-[1rem] border-transparent;
+    }
+
+    .grid-header {
+        @apply grid grid-cols-[auto,repeat(3,100px)] rounded-t-md bg-neutral-300 select-none;
+    }
+
+    .grid-header span {
+        @apply px-4 py-2 text-xs font-medium;
+    }
+
+    .grid-row {
+        @apply grid grid-cols-[auto,repeat(3,100px)] bg-white hover:bg-neutral-100 transition border border-t-0 border-x-neutral-300 border-b-neutral-200 last:border-b-neutral-300 last:rounded-b-md items-center cursor-pointer;
+    }
+
+    .grid-row > span {
+        @apply truncate px-4 py-2 text-xs first:text-sm flex gap-2 items-center;
+    }
+}

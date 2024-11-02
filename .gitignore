@@ -1,0 +1,6 @@
+node_modules
+public/client.js
+public/client.js.map
+public/style.css
+.dev.vars*
+.wrangler

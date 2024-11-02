@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            html,
+            document {
+                background-color: white;
+                height: 100vh;
+                font-family: sans-serif;
+            }
+        </style>
+    </head>
+    <body>
+        <p>Test Preview - view live document data</p>
+        <pre id="data"></pre>
+        <script>
+            window.addEventListener('message', event => {
+                const display = document.getElementById('data')
+                if (display) display.textContent = JSON.stringify(event.data, null, 4)
+            })
+        </script>
+    </body>
+</html>
