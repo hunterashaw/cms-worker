@@ -144,7 +144,7 @@ export default function Editor({
                 if (updateName) await client.deleteUser(name)
                 await client.createUser(name || newName)
             } else {
-                if (name !== newName && await client.documentExists(model, newName))
+                if (name !== newName && (await client.documentExists(model, newName)))
                     if (!confirm('Document already exists, overwrite?')) return setLoading(false)
                 await client.upsertDocument(model, name || newName, document, newName)
             }
@@ -172,7 +172,7 @@ export default function Editor({
         setLoading(false)
     }, [model, name, setLoading, isUsers, isFiles])
 
-    const [editorModel, setEditorModel] = useState<string[]>([])
+    const [path, setPath] = useState<string[]>([])
     const { documentSchema, previewURL } = useMemo(() => {
         const nameMatch = models.find(
             configurationModel => configurationModel.name === model && configurationModel.key === name
@@ -202,7 +202,7 @@ export default function Editor({
             currentValue = document
             currentSchema = documentSchema
 
-            for (const piece of editorModel) {
+            for (const piece of path) {
                 // @ts-ignore currentSchema is ObjectSchema
                 if (isNaN(Number(piece))) currentSchema = currentSchema.properties[piece]
                 else {
@@ -228,7 +228,7 @@ export default function Editor({
         }
         // @ts-ignore
         return { currentValue, currentSchema }
-    }, [editorModel, document, documentSchema])
+    }, [path, document, documentSchema])
 
     return (
         <div className="h-full min-h-screen grid grid-rows-[max-content,auto]">
@@ -284,10 +284,10 @@ export default function Editor({
                             <button
                                 id="document-back"
                                 onClick={() => {
-                                    if (editorModel.length) {
-                                        const last = editorModel.pop()
-                                        if (!isNaN(Number(last))) editorModel.pop()
-                                        setEditorModel([...editorModel])
+                                    if (path.length) {
+                                        const last = path.pop()
+                                        if (!isNaN(Number(last))) path.pop()
+                                        setPath([...path])
                                         return
                                     }
                                     leaveEditor()
@@ -311,7 +311,7 @@ export default function Editor({
                                 required
                             />
                         </div>
-                        <span className="text-xs font-medium">{editorModel.join('.')}</span>
+                        <span className="text-xs font-medium">{path.join('.')}</span>
                         {isFiles && (
                             <>
                                 <label htmlFor="file" className="flex flex-col gap-2 cursor-pointer">
@@ -364,7 +364,7 @@ export default function Editor({
                                         const title = keySchema?.title ?? key
 
                                         const update = newValue => {
-                                            set(document, [...editorModel, key], newValue)
+                                            set(document, [...path, key], newValue)
                                             setDocument({ ...document })
                                             setDocumentUpdated(true)
                                             previewUpdate()
@@ -375,7 +375,7 @@ export default function Editor({
                                                 <div key={key}>
                                                     <button
                                                         title={keySchema?.description ?? key}
-                                                        onClick={() => setEditorModel([...editorModel, key])}
+                                                        onClick={() => setPath([...path, key])}
                                                     >
                                                         <span>{title}</span>
                                                         <RightArrow />
@@ -560,11 +560,7 @@ export default function Editor({
                                                                 <button
                                                                     className="border-0 rounded-none group-last:rounded-bl-md"
                                                                     onClick={() =>
-                                                                        setEditorModel([
-                                                                            ...editorModel,
-                                                                            key,
-                                                                            i.toString()
-                                                                        ])
+                                                                        setPath([...path, key, i.toString()])
                                                                     }
                                                                 >
                                                                     <span>
@@ -592,7 +588,7 @@ export default function Editor({
 
                                         return (
                                             <label
-                                                key={key}
+                                                key={[...path, key].join('.')}
                                                 htmlFor={id}
                                                 className="flex flex-col gap-2 cursor-pointer"
                                             >
