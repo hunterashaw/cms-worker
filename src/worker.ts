@@ -1,7 +1,31 @@
-import { D1Database, D1Result, R2Bucket } from '@cloudflare/workers-types/experimental'
+import { D1Database, R2Bucket } from '@cloudflare/workers-types/experimental'
 import { Methods, Trouter } from 'trouter'
 import { parse } from 'cookie'
 import { Resend } from 'resend'
+import { modelController } from './default-controllers'
+
+export type ModelController = {
+    list: (
+        listParameters: {
+            prefix: string
+            limit: number
+            after: any
+        },
+        parameters: Parameters
+    ) => Promise<{ id: number; name: string; modified_at: number }[]>
+    exists: (name: string, parameters: Parameters) => Promise<Boolean>
+    get: (name: string, parameters: Parameters) => Promise<{ value: any; modified_at: number } | undefined | null>
+    put: (putParameters: { name: string; value: any; modified_by: string }, parameters: Parameters) => Promise<void>
+    delete: (name: string, parameters: Parameters) => Promise<void>
+}
+
+/**
+ * Use modelControllers to override default model behavior and integrate with external APIs
+ */
+const controllers: Record<string, ModelController> = {
+    /** Default model behavior, persists to database. */
+    default: modelController
+}
 
 type Environment = {
     DB: D1Database
@@ -16,6 +40,7 @@ type Parameters = {
     queries: Record<string, string>
     parameters: Record<string, string>
     body?: any
+    user: string | false
 }
 
 export type Endpoint = (request: Request, parameters: Parameters) => Response | Promise<Response>
@@ -30,37 +55,13 @@ export const responses = {
     noContent: new Response(undefined, { status: 204 })
 }
 
-const time = () => Math.floor(Date.now() / 1000)
+export const time = () => Math.floor(Date.now() / 1000)
 
 const defaultLimit = 20
 const lastHeader = 'x-last'
 const tokenPrefix = `Bearer `
 
 const router = new Trouter()
-
-export async function authenticate(request: Request, parameters: Parameters) {
-    const { session } = parse(parameters.headers?.cookie ?? '')
-    const token =
-        parameters.headers?.authorization && parameters.headers.authorization.startsWith(tokenPrefix)
-            ? parameters.headers.authorization.slice(tokenPrefix.length)
-            : undefined
-    if (!session && !token) return false
-
-    let user: string | null
-    if (session)
-        user = await parameters.environment.DB.prepare(
-            'select sessions.email from sessions inner join users on users.email = sessions.email where sessions.key = ? and sessions.expires_at > ?'
-        )
-            .bind(session, time())
-            .first<string>('email')
-    else
-        user = await parameters.environment.DB.prepare('select email from users where key = ?')
-            .bind(token)
-            .first<string>('email')
-
-    if (!user) return false
-    return user
-}
 
 router.post('/verification', async (request: Request, parameters: Parameters) => {
     const email = parameters?.body?.email
@@ -101,9 +102,8 @@ router.post('/verification', async (request: Request, parameters: Parameters) =>
 // Sessions
 
 router.get('/session', async (request: Request, parameters: Parameters) => {
-    const user = await authenticate(request, parameters)
-    if (!user) return responses.unauthorized
-    return responses.json({ email: user })
+    if (!parameters.user) return responses.unauthorized
+    return responses.json({ email: parameters.user })
 })
 
 router.post('/session', async (request: Request, parameters: Parameters) => {
@@ -132,8 +132,7 @@ router.post('/session', async (request: Request, parameters: Parameters) => {
 })
 
 router.delete('/session', async (request: Request, parameters: Parameters) => {
-    const user = await authenticate(request, parameters)
-    if (!user) return responses.unauthorized
+    if (!parameters.user) return responses.unauthorized
 
     const { session } = parse(parameters.headers?.cookie ?? '')
     if (session)
@@ -146,129 +145,73 @@ router.delete('/session', async (request: Request, parameters: Parameters) => {
 // Documents
 
 router.get('/documents/:model', async (request: Request, parameters: Parameters) => {
-    const user = await authenticate(request, parameters)
     const model = parameters.parameters?.model ?? ''
-    if (!user) return responses.unauthorized
+    if (!parameters.user) return responses.unauthorized
 
     const prefix = parameters.queries?.prefix
     const limit = parameters.queries?.limit ? Number(parameters.queries.limit) : defaultLimit
     const after = parameters.queries?.after ? Number(parameters.queries.after) : 0
 
-    let result: D1Result<{ rowid: number; name: string; created_at: number; modified_at: number; modified_by: string }>
-    if (prefix)
-        result = await parameters.environment.DB.prepare(
-            'select rowid, name, created_at, modified_at, modified_by from documents where model = ? and name glob ? and rowid > ? order by name, rowid limit ?'
-        )
-            .bind(model, `${prefix}*`, after, limit)
-            .all<{ rowid: number; name: string; created_at: number; modified_at: number; modified_by: string }>()
-    else
-        result = await parameters.environment.DB.prepare(
-            'select rowid, name, created_at, modified_at, modified_by from documents where model = ? and rowid > ? order by modified_at, rowid limit ?'
-        )
-            .bind(model, after, limit)
-            .all<{ rowid: number; name: string; created_at: number; modified_at: number; modified_by: string }>()
+    const controller = controllers[model] ?? controllers.default
+    const results = await controller.list({ prefix, limit, after }, parameters)
 
-    const last = result.results.length ? result.results[result.results.length - 1]?.rowid?.toString() : undefined
+    const last = results.length ? results[results.length - 1]?.id?.toString() : undefined
     const headers = {}
-    if (result.results.length === limit && last) headers[lastHeader] = last
-    return responses.json(result.results, headers)
+    if (results.length === limit && last) headers[lastHeader] = last
+    return responses.json(results, headers)
 })
 
-router.head('/document/:model/:name', async (request: Request, parameters: Parameters) => {
-    const user = await authenticate(request, parameters)
-    if (!user) return responses.unauthorized
-
-    const { model, name } = parameters.parameters
+router.head('/document/:model/*', async (request: Request, parameters: Parameters) => {
+    if (!parameters.user) return responses.unauthorized
+    const { model, '*': name } = parameters.parameters
     if (!model || !name) return responses.badRequest()
 
-    const result = await parameters.environment.DB.prepare(
-        'select created_at from documents where model = ? and name = ?'
-    )
-        .bind(model, name)
-        .first<{ created_at: number }>()
+    const controller = controllers[model] ?? controllers.default
+    const result = await controller.exists(name, parameters)
 
     if (!result) return responses.notFound
     return responses.noContent
 })
 
-router.get('/document/:model/:name', async (request: Request, parameters: Parameters) => {
-    const user = await authenticate(request, parameters)
-    if (!user) return responses.unauthorized
-
-    const { model, name } = parameters.parameters
+router.get('/document/:model/*', async (request: Request, parameters: Parameters) => {
+    if (!parameters.user) return responses.unauthorized
+    const { model, '*': name } = parameters.parameters
     if (!model || !name) return responses.badRequest()
 
-    const result = await parameters.environment.DB.prepare(
-        'select value, created_at, modified_at, modified_by from documents where model = ? and name = ?'
-    )
-        .bind(model, name)
-        .first<{ value: string; created_at: number; modified_at: number; modified_by: string }>()
+    const controller = controllers[model] ?? controllers.default
+    const result = await controller.get(name, parameters)
 
     if (!result) return responses.notFound
     return responses.json({
         value: JSON.parse(result.value),
-        created_at: result.created_at,
-        modified_at: result.modified_at,
-        modified_by: result.modified_by
+        modified_at: result.modified_at
     })
 })
 
-router.put('/document/:model/:name', async (request: Request, parameters: Parameters) => {
-    const user = await authenticate(request, parameters)
-    if (!user) return responses.unauthorized
-
-    const { model, name } = parameters.parameters
+router.put('/document/:model/*', async (request: Request, parameters: Parameters) => {
+    if (!parameters.user) return responses.unauthorized
+    const { model, '*': name } = parameters.parameters
     if (!model || !name) return responses.badRequest()
     const value = parameters.body
     if (!value) return responses.badRequest()
 
-    const existing = await parameters.environment.DB.prepare('select rowid from documents where model = ? and name = ?')
-        .bind(model, name)
-        .first<number>('rowid')
-    const rename = parameters.queries?.rename
-    if (rename && !existing) return responses.badRequest()
-    const now = time()
-
-    if (existing)
-        return responses.success(
-            await parameters.environment.DB.prepare(
-                'update documents set name = ?, value = ?, modified_at = ?, modified_by = ? where rowid = ?'
-            )
-                .bind(rename ?? name, JSON.stringify(value), now, user, existing)
-                .run()
-        )
-
-    return responses.success(
-        await parameters.environment.DB.prepare(
-            'insert into documents (model, name, value, created_at, modified_at, modified_by) values (?, ?, ?, ?, ?, ?)'
-        )
-            .bind(model, name, JSON.stringify(value), now, now, user)
-            .run()
-    )
+    const controller = controllers[model] ?? controllers.default
+    await controller.put({ name, value, modified_by: parameters.user }, parameters)
 })
 
-router.delete('/document/:model/:name', async (request: Request, parameters: Parameters) => {
-    const user = await authenticate(request, parameters)
-    if (!user) return responses.unauthorized
-
-    const { model, name } = parameters.parameters
+router.delete('/document/:model/*', async (request: Request, parameters: Parameters) => {
+    if (!parameters.user) return responses.unauthorized
+    const { model, '*': name } = parameters.parameters
     if (!model || !name) return responses.badRequest()
 
-    const existing = await parameters.environment.DB.prepare('select rowid from documents where model = ? and name = ?')
-        .bind(model, name)
-        .first<number>('rowid')
-
-    if (!existing) return responses.notFound
-    return responses.success(
-        await parameters.environment.DB.prepare('delete from documents where rowid = ?').bind(existing).run()
-    )
+    const controller = controllers[model] ?? controllers.default
+    await controller.delete(name, parameters)
 })
 
 // Files
 
 router.get('/files/', async (request: Request, parameters: Parameters) => {
-    const user = await authenticate(request, parameters)
-    if (!user) return responses.unauthorized
+    if (!parameters.user) return responses.unauthorized
 
     const prefix = parameters.queries?.prefix
     const limit = parameters.queries?.limit ? Number(parameters.queries.limit) : defaultLimit
@@ -326,21 +269,19 @@ router.head('/file/*', async (request: Request, parameters: Parameters) => {
 })
 
 router.put('/file/*', async (request: Request, parameters: Parameters) => {
-    const user = await authenticate(request, parameters)
-    if (!user) return responses.unauthorized
+    if (!parameters.user) return responses.unauthorized
 
     const key = parameters.parameters['*'] as string | undefined
     if (!key) return responses.badRequest()
     // @ts-ignore
     await parameters.environment.FILES.put(key, request.body, {
-        customMetadata: { uploaded_by: user, content_type: parameters.headers['content-type'] }
+        customMetadata: { uploaded_by: parameters.user, content_type: parameters.headers['content-type'] }
     })
     return responses.noContent
 })
 
 router.delete('/file/*', async (request: Request, parameters: Parameters) => {
-    const user = await authenticate(request, parameters)
-    if (!user) return responses.unauthorized
+    if (!parameters.user) return responses.unauthorized
 
     const key = parameters.parameters['*'] as string | undefined
     if (!key) return responses.badRequest()
@@ -351,8 +292,7 @@ router.delete('/file/*', async (request: Request, parameters: Parameters) => {
 // Users
 
 router.get('/users/', async (request: Request, parameters: Parameters) => {
-    const user = await authenticate(request, parameters)
-    if (!user) return responses.unauthorized
+    if (!parameters.user) return responses.unauthorized
 
     const prefix = parameters.queries?.prefix
 
@@ -370,8 +310,7 @@ router.get('/users/', async (request: Request, parameters: Parameters) => {
 })
 
 router.post('/user/', async (request: Request, parameters: Parameters) => {
-    const user = await authenticate(request, parameters)
-    if (!user) return responses.unauthorized
+    if (!parameters.user) return responses.unauthorized
 
     const email = parameters.body?.email
     if (!email) return responses.badRequest()
@@ -384,11 +323,10 @@ router.post('/user/', async (request: Request, parameters: Parameters) => {
 })
 
 router.delete('/user/', async (request: Request, parameters: Parameters) => {
-    const user = await authenticate(request, parameters)
-    if (!user) return responses.unauthorized
+    if (!parameters.user) return responses.unauthorized
 
     const email = parameters.queries?.email
-    if (!email || email === user) return responses.badRequest()
+    if (!email || email === parameters.user) return responses.badRequest()
 
     return responses.success({
         success:
@@ -408,13 +346,34 @@ export default {
                 const headers = Object.fromEntries(request.headers.entries())
                 if (headers['content-type'] === 'application/json') body = await request.json()
 
+                let user: string | false = false
+                const { session } = parse(headers?.cookie ?? '')
+                const token =
+                    headers?.authorization && headers.authorization.startsWith(tokenPrefix)
+                        ? headers.authorization.slice(tokenPrefix.length)
+                        : undefined
+
+                if (session)
+                    user =
+                        (await environment.DB.prepare(
+                            'select sessions.email from sessions inner join users on users.email = sessions.email where sessions.key = ? and sessions.expires_at > ?'
+                        )
+                            .bind(session, time())
+                            .first<string>('email')) ?? false
+                else if (token)
+                    user =
+                        (await environment.DB.prepare('select email from users where key = ?')
+                            .bind(token)
+                            .first<string>('email')) ?? false
+
                 return await handler(request, {
                     environment,
                     url,
                     headers,
                     queries: Object.fromEntries(url.searchParams.entries()),
                     parameters: match.params,
-                    body
+                    body,
+                    user
                 })
             } catch (e) {
                 // TODO: Email/Slack error notification

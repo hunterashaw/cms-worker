@@ -4,7 +4,7 @@ import { client } from './app'
 import { useDebouncedCallback } from 'use-debounce'
 import { UploadIcon, SearchIcon } from './icons'
 
-export default function Reference({
+export default function EditorReference({
     id,
     value,
     schema,

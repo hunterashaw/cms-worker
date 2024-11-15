@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import { client } from './app'
 
 export default function Login({ setAuthenticated }: { setAuthenticated: (value: boolean) => void }) {
@@ -8,6 +8,13 @@ export default function Login({ setAuthenticated }: { setAuthenticated: (value: 
     const [verification, setVerification] = useState<string>('')
     const [sending, setSending] = useState<boolean>(false)
     const [verificationMessage, setVerificationMessage] = useState<string>('')
+
+    const sendVerification = useCallback(async () => {
+        setSending(true)
+        if (await client.sendVerification(email)) setVerificationMessage('Verification sent.')
+        else setVerificationMessage('Unable to send verification.')
+        setSending(false)
+    }, [setSending, setVerificationMessage, email])
 
     return (
         <div className="h-full p-8 flex justify-center">
@@ -36,18 +43,22 @@ export default function Login({ setAuthenticated }: { setAuthenticated: (value: 
                         id="email"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
+                        onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault()
+                                sendVerification()
+                            }
+                        }}
                     />
                 </label>
                 <div className="grid grid-cols-[auto,max-content] gap-2 mt-2 items-center">
                     <span className="text-xs pl-2 font-medium">{verificationMessage}</span>
                     <button
+                        type="button"
                         disabled={sending}
                         onClick={async e => {
                             e.preventDefault()
-                            setSending(true)
-                            if (await client.sendVerification(email)) setVerificationMessage('Verification sent.')
-                            else setVerificationMessage('Unable to send verification.')
-                            setSending(false)
+                            sendVerification()
                         }}
                     >
                         {sending ? 'sending...' : 'send verification'}

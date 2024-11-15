@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import Login from './login'
 import Documents from './documents'
 import Editor, { ObjectSchema } from './editor'
+import Header from './header'
 
 export class Client {
     headers: Record<string, string>
@@ -316,10 +317,16 @@ export default function App({ models }: { models: Model[] }) {
     return (
         <>
             {authenticated === false && <Login {...{ setAuthenticated }} />}
-            {authenticated && name === undefined && (
-                <Documents {...{ setAuthenticated, model, setModel, setName, models }} />
+            {authenticated && (
+                <div className="h-full min-h-screen grid grid-rows-[max-content,auto]">
+                    <Header {...{ setAuthenticated }} />
+                    {name === undefined ? (
+                        <Documents {...{ model, setModel, setName, models }} />
+                    ) : (
+                        <Editor {...{ model, name, setName, models }} />
+                    )}
+                </div>
             )}
-            {authenticated && name !== undefined && <Editor {...{ setAuthenticated, model, name, setName, models }} />}
         </>
     )
 }

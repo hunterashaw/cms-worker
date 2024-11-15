@@ -29,7 +29,7 @@
     }
 
     .grid-header {
-        @apply grid grid-cols-[auto,repeat(3,100px)] rounded-t-md bg-neutral-300 select-none;
+        @apply grid grid-cols-[auto,repeat(1,120px)] rounded-t-md bg-neutral-300 select-none;
     }
 
     .grid-header span {
@@ -37,7 +37,7 @@
     }
 
     .grid-row {
-        @apply grid grid-cols-[auto,repeat(3,100px)] bg-white hover:bg-neutral-100 transition border border-t-0 border-x-neutral-300 border-b-neutral-200 last:border-b-neutral-300 last:rounded-b-md items-center cursor-pointer;
+        @apply grid grid-cols-[auto,repeat(1,120px)] bg-white hover:bg-neutral-100 transition border border-t-0 border-x-neutral-300 border-b-neutral-200 last:border-b-neutral-300 last:rounded-b-md items-center cursor-pointer;
     }
 
     .grid-row > span {
