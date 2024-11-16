@@ -56,15 +56,16 @@ export const models: Model[] = [
         schema: {
             type: 'object',
             properties: {
-                title: { type: 'string' },
                 type: { type: 'string', enum: ['physical', 'digital'] },
-                image: { type: 'string', format: 'uri', model: 'files' },
-                dimensions: {
-                    type: 'object',
-                    properties: {
-                        price: { type: 'number' },
-                        sale_price: { type: 'number', title: 'sale price' },
-                        weight: { type: 'number' }
+                price: { type: 'number' },
+                weight: { type: 'number' },
+                custom_fields: {
+                    type: 'array',
+                    items: {
+                        type: 'object',
+                        title: 'custom field',
+                        properties: { name: { type: 'string' }, value: { type: 'string' } },
+                        default: {}
                     }
                 }
             }
