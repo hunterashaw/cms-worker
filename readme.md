@@ -15,6 +15,7 @@ A full CRUD UI & API for:
     - Define your data using [JSON-schema](https://json-schema.org/)
     - Reference other documents/files/users within your schema
     - Live-preview data within your own websites/apps
+    - Build custom controllers to integrate with 3rd party systems (ecommerce, bloging, other 3rd party CMSs)
     - Built on [Cloudflare D1](https://www.cloudflare.com/developer-platform/products/d1/)
 - :file_folder: **Files**
     - Store any file for hosting / referencing within your data
@@ -72,11 +73,21 @@ Models can implement live-preview by defining a function (`previewURL?: (documen
 
 Real-time changes to the document will be pushed to the iframe using `window.postMessage`. Take a look at `public/test.html` for a plain Javascript example. This can easily be adapted to use React hooks within your own websites / apps.
 
+### Custom Model Controllers
+
+Custom controllers can be defined within the `const controllers` in `worker.ts`, where the key is the model name.
+
+Any model name that doesn't match with a key will use the `default` controller, which just persists the document to the D1 database.
+
+This can be used to integrate the CMS with 3rd party systems like ecommerce platforms. Custom controllers can be combined with the default controller to persist/combine data in both 3rd party systems & the D1 database.
+
+See `controllers/products.ts` for an example controller that integrates with the BigCommerce Catalog API (note that a compatible schema is also required).
+
 ### Development
 
-All backend related functionality is defined within `worker.ts`.
+All backend related functionality starts from `worker.ts`.
 
-All frontend related functionality is defined within `components/app.tsx`.
+All frontend related functionality starts from `components/app.tsx`.
 
 ## Deploying
 
