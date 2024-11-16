@@ -209,7 +209,7 @@ export default function Editor({
                             )}
                         </div>
                     </div>
-                    <div className="flex gap-2 items-center">
+                    <div className="grid grid-cols-[min-content,auto] gap-2 items-center">
                         <button
                             id="document-back"
                             onClick={() => {
@@ -227,7 +227,6 @@ export default function Editor({
                         </button>
                         <input
                             id="document-name"
-                            className="w-72"
                             value={newName}
                             onChange={e => {
                                 if (e.target.value !== newName) {
@@ -238,6 +237,7 @@ export default function Editor({
                             }}
                             placeholder={`new ${isUsers ? 'user email' : 'document name'}`}
                             required
+                            title='Document name'
                         />
                     </div>
                     <span className="text-xs font-medium">{path.join('.')}</span>

@@ -1,25 +1,26 @@
-import { ModelController, time } from './worker'
+import { ModelController, time } from '../worker'
 
 export const modelController: ModelController = {
     async list({ prefix, limit, after }, { parameters, environment: { DB } }) {
         const model = parameters?.model ?? ''
 
-        if (prefix)
-            return (
-                await DB.prepare(
-                    'select rowid as id, name, modified_at from documents where model = ? and name glob ? and rowid > ? order by name, rowid limit ?'
-                )
-                    .bind(model, `${prefix}*`, after, limit)
-                    .all<{ id: number; name: string; modified_at: number }>()
-            ).results
-        else
-            return (
-                await DB.prepare(
-                    'select rowid as id, name, modified_at from documents where model = ? and rowid > ? order by modified_at, rowid limit ?'
-                )
-                    .bind(model, after, limit)
-                    .all<{ id: number; name: string; modified_at: number }>()
-            ).results
+        const results = prefix
+            ? (
+                  await DB.prepare(
+                      'select rowid as id, name, modified_at from documents where model = ? and name glob ? and rowid > ? order by name, rowid limit ?'
+                  )
+                      .bind(model, `${prefix}*`, after, limit)
+                      .all<{ id: number; name: string; modified_at: number }>()
+              ).results
+            : (
+                  await DB.prepare(
+                      'select rowid as id, name, modified_at from documents where model = ? and rowid > ? order by modified_at, rowid limit ?'
+                  )
+                      .bind(model, after, limit)
+                      .all<{ id: number; name: string; modified_at: number }>()
+              ).results
+
+        return { results, last: results.length ? results[results.length - 1]?.id?.toString() : undefined }
     },
     async exists(name, { parameters, environment: { DB } }) {
         const model = parameters?.model ?? ''
@@ -33,9 +34,15 @@ export const modelController: ModelController = {
     async get(name, { parameters, environment: { DB } }) {
         const model = parameters?.model ?? ''
 
-        return await DB.prepare('select value, modified_at from documents where model = ? and name = ?')
+        const result = await DB.prepare('select value, modified_at from documents where model = ? and name = ?')
             .bind(model, name)
             .first<{ value: string; modified_at: number }>()
+
+        if (!result) return
+        return {
+            value: JSON.parse(result.value),
+            modified_at: result.modified_at
+        }
     },
     async put({ name, value, modified_by }, { parameters, queries, environment: { DB } }) {
         const model = parameters?.model ?? ''

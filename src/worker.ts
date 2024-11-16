@@ -2,7 +2,8 @@ import { D1Database, R2Bucket } from '@cloudflare/workers-types/experimental'
 import { Methods, Trouter } from 'trouter'
 import { parse } from 'cookie'
 import { Resend } from 'resend'
-import { modelController } from './default-controllers'
+import { modelController } from './controllers/default'
+import { productsController } from './controllers/products'
 
 export type ModelController = {
     list: (
@@ -12,7 +13,7 @@ export type ModelController = {
             after: any
         },
         parameters: Parameters
-    ) => Promise<{ id: number; name: string; modified_at: number }[]>
+    ) => Promise<{ results: { name: string; modified_at: number }[]; last: any }>
     exists: (name: string, parameters: Parameters) => Promise<Boolean>
     get: (name: string, parameters: Parameters) => Promise<{ value: any; modified_at: number } | undefined | null>
     put: (putParameters: { name: string; value: any; modified_by: string }, parameters: Parameters) => Promise<void>
@@ -20,17 +21,19 @@ export type ModelController = {
 }
 
 /**
- * Use modelControllers to override default model behavior and integrate with external APIs
+ * Use controllers to override default model behavior and integrate with external APIs
  */
 const controllers: Record<string, ModelController> = {
-    /** Default model behavior, persists to database. */
-    default: modelController
+    default: modelController,
+    products: productsController
 }
 
 type Environment = {
     DB: D1Database
     FILES: R2Bucket
     RESEND_KEY?: string
+    BIGCOMMERCE_HASH?: string
+    BIGCOMMERCE_TOKEN?: string
 }
 
 type Parameters = {
@@ -153,12 +156,11 @@ router.get('/documents/:model', async (request: Request, parameters: Parameters)
     const after = parameters.queries?.after ? Number(parameters.queries.after) : 0
 
     const controller = controllers[model] ?? controllers.default
-    const results = await controller.list({ prefix, limit, after }, parameters)
+    const result = await controller.list({ prefix, limit, after }, parameters)
 
-    const last = results.length ? results[results.length - 1]?.id?.toString() : undefined
     const headers = {}
-    if (results.length === limit && last) headers[lastHeader] = last
-    return responses.json(results, headers)
+    if (result.last) headers[lastHeader] = result.last
+    return responses.json(result.results, headers)
 })
 
 router.head('/document/:model/*', async (request: Request, parameters: Parameters) => {
@@ -167,7 +169,7 @@ router.head('/document/:model/*', async (request: Request, parameters: Parameter
     if (!model || !name) return responses.badRequest()
 
     const controller = controllers[model] ?? controllers.default
-    const result = await controller.exists(name, parameters)
+    const result = await controller.exists(decodeURI(name), parameters)
 
     if (!result) return responses.notFound
     return responses.noContent
@@ -179,13 +181,10 @@ router.get('/document/:model/*', async (request: Request, parameters: Parameters
     if (!model || !name) return responses.badRequest()
 
     const controller = controllers[model] ?? controllers.default
-    const result = await controller.get(name, parameters)
+    const result = await controller.get(decodeURI(name), parameters)
 
     if (!result) return responses.notFound
-    return responses.json({
-        value: JSON.parse(result.value),
-        modified_at: result.modified_at
-    })
+    return responses.json(result)
 })
 
 router.put('/document/:model/*', async (request: Request, parameters: Parameters) => {
@@ -196,7 +195,7 @@ router.put('/document/:model/*', async (request: Request, parameters: Parameters
     if (!value) return responses.badRequest()
 
     const controller = controllers[model] ?? controllers.default
-    await controller.put({ name, value, modified_by: parameters.user }, parameters)
+    await controller.put({ name: decodeURI(name), value, modified_by: parameters.user }, parameters)
 })
 
 router.delete('/document/:model/*', async (request: Request, parameters: Parameters) => {
@@ -205,7 +204,7 @@ router.delete('/document/:model/*', async (request: Request, parameters: Paramet
     if (!model || !name) return responses.badRequest()
 
     const controller = controllers[model] ?? controllers.default
-    await controller.delete(name, parameters)
+    await controller.delete(decodeURI(name), parameters)
 })
 
 // Files
@@ -248,7 +247,7 @@ router.get('/file/*', async (request: Request, parameters: Parameters) => {
     const key = parameters.parameters['*'] as string | undefined
     if (!key) return responses.notFound
 
-    const result = await parameters.environment.FILES.get(key)
+    const result = await parameters.environment.FILES.get(decodeURI(key))
     // TODO: add public/private flag
 
     if (!result) return responses.notFound
@@ -260,7 +259,7 @@ router.head('/file/*', async (request: Request, parameters: Parameters) => {
     const key = parameters.parameters['*'] as string | undefined
     if (!key) return responses.notFound
 
-    const result = await parameters.environment.FILES.get(key)
+    const result = await parameters.environment.FILES.get(decodeURI(key))
     // TODO: add public/private flag
 
     if (!result) return responses.notFound
@@ -274,7 +273,7 @@ router.put('/file/*', async (request: Request, parameters: Parameters) => {
     const key = parameters.parameters['*'] as string | undefined
     if (!key) return responses.badRequest()
     // @ts-ignore
-    await parameters.environment.FILES.put(key, request.body, {
+    await parameters.environment.FILES.put(decodeURI(key), request.body, {
         customMetadata: { uploaded_by: parameters.user, content_type: parameters.headers['content-type'] }
     })
     return responses.noContent
@@ -285,7 +284,7 @@ router.delete('/file/*', async (request: Request, parameters: Parameters) => {
 
     const key = parameters.parameters['*'] as string | undefined
     if (!key) return responses.badRequest()
-    await parameters.environment.FILES.delete(key)
+    await parameters.environment.FILES.delete(decodeURI(key))
     return responses.noContent
 })
 
