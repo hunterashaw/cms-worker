@@ -38,10 +38,11 @@ export const productsController: ModelController = {
         })
         return { value: existing, modified_at: Math.round(new Date(existing.date_modified).getTime() / 1000) }
     },
-    async put({ name, value }, { environment: { BIGCOMMERCE_HASH, BIGCOMMERCE_TOKEN } }) {
+    async put({ name, rename, value }, { environment: { BIGCOMMERCE_HASH, BIGCOMMERCE_TOKEN } }) {
         if (!BIGCOMMERCE_HASH || !BIGCOMMERCE_TOKEN) throw new Error('BigCommerce credentials are missing.')
         const store = new BigCommerceStore(BIGCOMMERCE_HASH, BIGCOMMERCE_TOKEN)
         const [existing] = await store.get('v3/catalog/products', { queries: { name, limit: 1, include_fields: 'id' } })
+        if (rename) value.name = rename
         if (existing) await store.put(`v3/catalog/products/${existing.id}`, { body: value })
         else await store.post(`v3/catalog/products`, { body: value })
     },

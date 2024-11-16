@@ -16,7 +16,10 @@ export type ModelController = {
     ) => Promise<{ results: { name: string; modified_at: number }[]; last: any }>
     exists: (name: string, parameters: Parameters) => Promise<Boolean>
     get: (name: string, parameters: Parameters) => Promise<{ value: any; modified_at: number } | undefined | null>
-    put: (putParameters: { name: string; value: any; modified_by: string }, parameters: Parameters) => Promise<void>
+    put: (
+        putParameters: { name: string; rename: string; value: any; modified_by: string },
+        parameters: Parameters
+    ) => Promise<void>
     delete: (name: string, parameters: Parameters) => Promise<void>
 }
 
@@ -191,11 +194,12 @@ router.put('/document/:model/*', async (request: Request, parameters: Parameters
     if (!parameters.user) return responses.unauthorized
     const { model, '*': name } = parameters.parameters
     if (!model || !name) return responses.badRequest()
+    const rename = parameters.queries?.rename
     const value = parameters.body
     if (!value) return responses.badRequest()
 
     const controller = controllers[model] ?? controllers.default
-    await controller.put({ name: decodeURI(name), value, modified_by: parameters.user }, parameters)
+    await controller.put({ name: decodeURI(name), rename, value, modified_by: parameters.user }, parameters)
 })
 
 router.delete('/document/:model/*', async (request: Request, parameters: Parameters) => {

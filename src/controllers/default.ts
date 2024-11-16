@@ -44,14 +44,12 @@ export const modelController: ModelController = {
             modified_at: result.modified_at
         }
     },
-    async put({ name, value, modified_by }, { parameters, queries, environment: { DB } }) {
+    async put({ name, rename, value, modified_by }, { parameters, queries, environment: { DB } }) {
         const model = parameters?.model ?? ''
 
         const existing = await DB.prepare('select rowid from documents where model = ? and name = ?')
             .bind(model, name)
             .first<number>('rowid')
-
-        const rename = queries?.rename
         if (rename && !existing) throw new Error('Cannot rename non-existant document.')
         const now = time()
 
