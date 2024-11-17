@@ -241,7 +241,7 @@ export const client = new Client()
 export type Model = {
     name: string
     key?: string
-    schema: ObjectSchema
+    schema: ObjectSchema | ((value: any) => ObjectSchema)
     previewURL?: (document: { model: string; name: string; value: any }) => string | undefined
 }
 

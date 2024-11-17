@@ -1,4 +1,5 @@
 import { Model } from './components/app'
+import { ObjectSchema } from './components/editor'
 
 export const models: Model[] = [
     {
@@ -53,22 +54,28 @@ export const models: Model[] = [
     },
     {
         name: 'products',
-        schema: {
-            type: 'object',
-            properties: {
-                type: { type: 'string', enum: ['physical', 'digital'] },
-                price: { type: 'number' },
-                weight: { type: 'number' },
-                custom_fields: {
-                    type: 'array',
-                    items: {
-                        type: 'object',
-                        title: 'custom field',
-                        properties: { name: { type: 'string' }, value: { type: 'string' } },
-                        default: {}
+        schema: product => {
+            const schema = {
+                type: 'object',
+                properties: {
+                    type: { type: 'string', enum: ['physical', 'digital'] },
+                    price: { type: 'number' },
+                    weight: { type: 'number' },
+                    custom_fields: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            title: 'custom field',
+                            properties: { name: { type: 'string' }, value: { type: 'string' } },
+                            default: {}
+                        }
                     }
                 }
-            }
+            } as ObjectSchema
+
+            if (product.type === 'digital') delete schema.properties.weight
+
+            return schema
         },
         previewURL: product => {
             return '/test'

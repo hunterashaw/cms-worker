@@ -101,7 +101,7 @@ npm run deploy
 
 ## Feature Roadmap
 
-- [ ] Dynamic model schema (accept schema generator function)
+- [x] Dynamic model schema (accept schema generator function)
 - [ ] Session device fingerprinting (IP + user agent hash)
 - [ ] Import/export CSV & JSON files within client
 - [ ] Document versions (change merging)

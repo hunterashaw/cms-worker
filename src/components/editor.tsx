@@ -144,10 +144,18 @@ export default function Editor({
         const nameMatch = models.find(
             configurationModel => configurationModel.name === model && configurationModel.key === name
         )
-        if (nameMatch) return { documentSchema: nameMatch.schema, previewURL: nameMatch.previewURL }
+        if (nameMatch)
+            return {
+                documentSchema: typeof nameMatch.schema === 'function' ? nameMatch.schema(document) : nameMatch.schema,
+                previewURL: nameMatch.previewURL
+            }
         const modelMatch = models.find(({ name }) => name === model)
-        return { documentSchema: modelMatch?.schema, previewURL: modelMatch?.previewURL }
-    }, [model, name])
+        return {
+            documentSchema:
+                typeof modelMatch?.schema === 'function' ? modelMatch?.schema(document) : modelMatch?.schema,
+            previewURL: modelMatch?.previewURL
+        }
+    }, [model, name, document])
     const [previewing, setPreviewing] = useState(false)
     const previewFrame = useRef(null)
 
@@ -178,7 +186,7 @@ export default function Editor({
                 )}
             >
                 <div className="w-full max-w-xl flex flex-col gap-4">
-                    <div className="grid grid-cols-[auto,max-content] h-10">
+                    <div className="grid gap-2 grid-cols-[auto,max-content] h-10">
                         <h1 className="pl-2 text-lg font-medium flex items-center gap-2">
                             {model || '/'}
                             {loading && <span className="text-neutral-500 text-sm font-medium">loading...</span>}
@@ -237,7 +245,7 @@ export default function Editor({
                             }}
                             placeholder={`new ${isUsers ? 'user email' : 'document name'}`}
                             required
-                            title='Document name'
+                            title="Document name"
                         />
                     </div>
                     <span className="text-xs font-medium">{path.join('.')}</span>
