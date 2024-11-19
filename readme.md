@@ -108,5 +108,5 @@ npm run deploy
 - [ ] Pre-built React hooks for live preview (new module?)
 - [ ] Caching (w/ invalidation)
 - [ ] User roles w/ granular permissions (including document versions)
-- [ ] Rich text editor
-- [ ] Custom mapped array item titles
+- [x] Rich text editor
+- [x] Custom mapped array item titles

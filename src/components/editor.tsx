@@ -15,11 +15,11 @@ export type ObjectSchema = {
     properties: Record<string, PropertySchema>
 }
 
-type StringSchema = {
+export type StringSchema = {
     type: 'string'
     title?: string
     description?: string
-    format?: 'date-time'
+    format?: 'date-time' | 'rich'
     enum?: string[]
 }
 
@@ -32,24 +32,24 @@ export type ReferenceSchema = {
     enum?: string[]
 }
 
-type NumberSchema = {
+export type NumberSchema = {
     type: 'number'
     title?: string
     description?: string
 }
 
-type BooleanSchema = {
+export type BooleanSchema = {
     type: 'boolean'
     title?: string
     description?: string
 }
 
-type ArrayItemSchema = {
+export type ArrayItemSchema = {
     type: 'object'
     title: string
     description?: string
     properties: Record<string, PropertySchema>
-    default: any
+    default?: any
 }
 
 export type ArraySchema = {
@@ -57,6 +57,7 @@ export type ArraySchema = {
     title?: string
     description?: string
     items: ArrayItemSchema | { anyOf: ArrayItemSchema[] }
+    itemKey?: (value: any) => string
 }
 
 export default function Editor({

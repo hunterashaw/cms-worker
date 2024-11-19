@@ -3,6 +3,19 @@ import { ArraySchema, ObjectSchema } from './editor'
 import clsx from 'clsx'
 import { CheckboxIcon, PlusIcon, RightArrow, TrashIcon } from './icons'
 import EditorReference from './editor-reference'
+import {
+    MDXEditor,
+    toolbarPlugin,
+    headingsPlugin,
+    listsPlugin,
+    quotePlugin,
+    BoldItalicUnderlineToggles,
+    BlockTypeSelect,
+    ListsToggle,
+    CreateLink,
+    linkDialogPlugin
+} from '@mdxeditor/editor'
+import '@mdxeditor/editor/style.css'
 
 function set(object: any, model: string[], value: any) {
     let current = object
@@ -33,7 +46,7 @@ export default function EditorFields({
     setDocumentUpdated,
     documentSchema
 }: {
-    path: string[],
+    path: string[]
     setPath: (value: string[]) => void
     document: any
     setDocument: (value: any) => void
@@ -76,10 +89,9 @@ export default function EditorFields({
         return { currentValue, currentSchema }
     }, [path, document, documentSchema])
 
-    return <div className="flex flex-col gap-4">
-            {currentSchema?.title && (
-                <span className="ml-2 text-sm font-medium">{currentSchema.title}</span>
-            )}
+    return (
+        <div className="flex flex-col gap-4">
+            {currentSchema?.title && <span className="ml-2 text-sm font-medium">{currentSchema.title}</span>}
             {currentSchema?.description && (
                 <span className="ml-2 text-sm text-neutral-500">{currentSchema.description}</span>
             )}
@@ -102,10 +114,7 @@ export default function EditorFields({
                     if (keySchema.type === 'object')
                         return (
                             <div key={key}>
-                                <button
-                                    title={keySchema?.description ?? key}
-                                    onClick={() => setPath([...path, key])}
-                                >
+                                <button title={keySchema?.description ?? key} onClick={() => setPath([...path, key])}>
                                     <span>{title}</span>
                                     <RightArrow />
                                 </button>
@@ -117,7 +126,12 @@ export default function EditorFields({
                             if (keySchema.format === 'uri')
                                 return (
                                     <EditorReference
-                                        {...{ id, value: keyValue, schema: keySchema, update }}
+                                        {...{
+                                            id,
+                                            value: keyValue,
+                                            schema: keySchema,
+                                            update
+                                        }}
                                     />
                                 )
                             if (keySchema.format === 'date-time')
@@ -129,26 +143,38 @@ export default function EditorFields({
                                         onChange={e => update(e.target.value as string)}
                                     />
                                 )
+                            if (keySchema.format === 'rich')
+                                return (
+                                    <MDXEditor
+                                        plugins={[
+                                            toolbarPlugin({
+                                                toolbarClassName: 'rich-toolbar',
+                                                toolbarContents: () => (
+                                                    <>
+                                                        <BlockTypeSelect />
+                                                        <BoldItalicUnderlineToggles />
+                                                        <ListsToggle />
+                                                    </>
+                                                )
+                                            }),
+                                            headingsPlugin(),
+                                            listsPlugin(),
+                                            quotePlugin()
+                                        ]}
+                                        markdown={keyValue ?? ''}
+                                        onChange={value => update(value)}
+                                    />
+                                )
                             if (keySchema.enum)
                                 return (
-                                    <select
-                                        id={id}
-                                        value={keyValue}
-                                        onChange={e => update(e.target.value)}
-                                    >
+                                    <select id={id} value={keyValue} onChange={e => update(e.target.value)}>
                                         <option className="text-neutral-500" value=""></option>
                                         {keySchema.enum.map(option => (
                                             <option key={option}>{option}</option>
                                         ))}
                                     </select>
                                 )
-                            return (
-                                <input
-                                    id={id}
-                                    value={keyValue}
-                                    onChange={e => update(e.target.value as string)}
-                                />
-                            )
+                            return <input id={id} value={keyValue} onChange={e => update(e.target.value as string)} />
                         }
                         if (keySchema.type === 'number')
                             return (
@@ -251,66 +277,72 @@ export default function EditorFields({
                                         )
                                     }
 
-                                    {keyValue?.map((item, i) => (
-                                        <div
-                                            className="rounded-none border-b border-b-neutral-200 last:rounded-b-md last:border-b-0 grid grid-cols-[auto,max-content] p-0 group"
-                                            key={item._id}
-                                            draggable="true"
-                                            onDragStart={e => {
-                                                e.dataTransfer.setData(
-                                                    'application/json',
-                                                    JSON.stringify({ key, i })
-                                                )
-                                                e.dataTransfer.effectAllowed = 'move'
-                                            }}
-                                            onDragEnter={e => {
-                                                e.preventDefault()
-                                            }}
-                                            onDragOver={e => {
-                                                e.preventDefault()
-                                            }}
-                                            onDrop={e => {
-                                                try {
-                                                    const payload = JSON.parse(
-                                                        e.dataTransfer.getData('application/json')
-                                                    ) as { key: string; i: number }
-                                                    if (key !== payload.key)
-                                                        throw new Error('Cannot drop between keys.')
-                                                    if (payload.i === i) return
-                                                    const payloadValue = keyValue[payload.i]
-                                                    keyValue.splice(payload.i, 1)
-                                                    keyValue.splice(i, 0, payloadValue)
-                                                    update([...keyValue])
-                                                } catch (e) {
-                                                    console.error(e)
-                                                }
-                                            }}
-                                        >
-                                            <button
-                                                className="border-0 rounded-none group-last:rounded-bl-md"
-                                                onClick={() =>
-                                                    setPath([...path, key, i.toString()])
-                                                }
-                                            >
-                                                <span>
-                                                    {item._type} {item._id}
-                                                </span>
-                                                <RightArrow />
-                                            </button>
-                                            <div className="h-full">
-                                                <button
-                                                    className="h-full rounded-none border-0 hover:bg-red-100 group-last:rounded-br-md"
-                                                    onClick={() => {
-                                                        // @ts-ignore
-                                                        keyValue.splice(i, 1)
+                                    {keyValue?.map((item, i) => {
+                                        const itemKey = keySchema.itemKey ? keySchema.itemKey(item) : undefined
+                                        return (
+                                            <div
+                                                className="rounded-none border-b border-b-neutral-200 last:rounded-b-md last:border-b-0 grid grid-cols-[auto,max-content] p-0 group"
+                                                key={itemKey ? itemKey + i : item._id}
+                                                draggable="true"
+                                                onDragStart={e => {
+                                                    e.dataTransfer.setData(
+                                                        'application/json',
+                                                        JSON.stringify({ key, i })
+                                                    )
+                                                    e.dataTransfer.effectAllowed = 'move'
+                                                }}
+                                                onDragEnter={e => {
+                                                    e.preventDefault()
+                                                }}
+                                                onDragOver={e => {
+                                                    e.preventDefault()
+                                                }}
+                                                onDrop={e => {
+                                                    try {
+                                                        const payload = JSON.parse(
+                                                            e.dataTransfer.getData('application/json')
+                                                        ) as { key: string; i: number }
+                                                        if (key !== payload.key)
+                                                            throw new Error('Cannot drop between keys.')
+                                                        if (payload.i === i) return
+                                                        const payloadValue = keyValue[payload.i]
+                                                        keyValue.splice(payload.i, 1)
+                                                        keyValue.splice(i, 0, payloadValue)
                                                         update([...keyValue])
-                                                    }}
+                                                    } catch (e) {
+                                                        console.error(e)
+                                                    }
+                                                }}
+                                            >
+                                                <button
+                                                    className="border-0 rounded-none group-last:rounded-bl-md"
+                                                    onClick={() => setPath([...path, key, i.toString()])}
                                                 >
-                                                    <TrashIcon />
+                                                    <span>
+                                                        {itemKey && itemKey}
+                                                        {!itemKey && (
+                                                            <>
+                                                                {item._type} {item._id}
+                                                            </>
+                                                        )}
+                                                    </span>
+                                                    <RightArrow />
                                                 </button>
+                                                <div className="h-full">
+                                                    <button
+                                                        className="h-full rounded-none border-0 hover:bg-red-100 group-last:rounded-br-md"
+                                                        onClick={() => {
+                                                            // @ts-ignore
+                                                            keyValue.splice(i, 1)
+                                                            update([...keyValue])
+                                                        }}
+                                                    >
+                                                        <TrashIcon />
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        )
+                                    })}
                                 </div>
                             )
                     })()
@@ -323,9 +355,7 @@ export default function EditorFields({
                         >
                             <span className="flex gap-2 items-center">
                                 <span className="text-sm font-medium ml-2">{title}</span>
-                                <span className="text-xs text-neutral-500">
-                                    {keySchema?.description}
-                                </span>
+                                <span className="text-xs text-neutral-500">{keySchema?.description}</span>
                             </span>
                             {input}
                         </label>
@@ -333,4 +363,5 @@ export default function EditorFields({
                 })
             }
         </div>
+    )
 }

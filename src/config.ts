@@ -9,6 +9,7 @@ export const models: Model[] = [
             properties: {
                 title: { type: 'string' },
                 url: { type: 'string' },
+                description: { type: 'string', format: 'rich' },
                 content: {
                     description: 'drag & drop to re-order content blocks.',
                     type: 'array',
@@ -68,7 +69,8 @@ export const models: Model[] = [
                             title: 'custom field',
                             properties: { name: { type: 'string' }, value: { type: 'string' } },
                             default: {}
-                        }
+                        },
+                        itemKey: value => value.name
                     }
                 }
             } as ObjectSchema

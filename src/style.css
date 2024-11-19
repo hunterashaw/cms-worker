@@ -21,7 +21,15 @@
 
     input,
     .input {
-        @apply px-4 py-2 text-sm rounded-md border border-neutral-300;
+        @apply px-4 py-2 bg-white text-sm rounded-md border border-neutral-300;
+    }
+
+    [contenteditable='true'] {
+        @apply px-4 py-2 bg-white text-sm rounded-b-md border border-t-0 border-neutral-300 prose max-w-none;
+    }
+
+    .rich-toolbar {
+        @apply !rounded-t-md !rounded-b-none !bg-neutral-300;
     }
 
     select {
