@@ -9,7 +9,7 @@ export const models: Model[] = [
             properties: {
                 title: { type: 'string' },
                 url: { type: 'string' },
-                description: { type: 'string', format: 'rich' },
+                description: { type: 'string', format: 'markdown' },
                 content: {
                     description: 'drag & drop to re-order content blocks.',
                     type: 'array',
