@@ -25,7 +25,13 @@
     }
 
     [contenteditable='true'] {
-        @apply px-4 py-2 bg-white text-sm rounded-b-md border border-t-0 border-neutral-300 prose max-w-none;
+        @apply px-4 py-2 bg-white text-sm rounded-b-md border border-t-0 border-neutral-300 prose prose-neutral max-w-none;
+        :first-child {
+            @apply mt-0;
+        }
+        :last-child {
+            @apply mb-0;
+        }
     }
 
     .rich-toolbar {
