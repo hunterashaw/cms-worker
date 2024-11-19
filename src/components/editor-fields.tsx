@@ -143,7 +143,7 @@ export default function EditorFields({
                                         onChange={e => update(e.target.value as string)}
                                     />
                                 )
-                            if (keySchema.format === 'rich')
+                            if (keySchema.format === 'markdown')
                                 return (
                                     <MDXEditor
                                         plugins={[

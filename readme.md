@@ -59,7 +59,7 @@ Model schema accepts a restricted set of [JSON-schema](https://json-schema.org/)
     - Properties can have `title`s and `description`s for annotation
     - Properties can also have a `default` value
  - Strings
-    - Can have optional `'date-time'` or `'uri'` `format`
+    - Can have optional `'date-time'`, `'markdown'`, or `'uri'` `format`
     - References to other documents/files/users are implemented using `format: 'uri', model: modelName` where `modelName` is either `'files'`, `'users'`, or any other model name
  - Arrays
     - Can only have an `object` `items` type

@@ -19,7 +19,7 @@ export type StringSchema = {
     type: 'string'
     title?: string
     description?: string
-    format?: 'date-time' | 'rich'
+    format?: 'date-time' | 'markdown'
     enum?: string[]
 }
 
