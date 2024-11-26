@@ -113,3 +113,4 @@ npm run deploy
 - [ ] Prefixes table (folders)
 - [ ] Finish testing single document editing
 - [ ] Allow turning off creates, renames, updates & deletes within schema
+- [ ] Add asc/desc modified_at filter including starting parameter
