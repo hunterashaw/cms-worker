@@ -111,3 +111,5 @@ npm run deploy
 - [x] Rich text editor
 - [x] Custom mapped array item titles
 - [ ] Prefixes table (folders)
+- [ ] Finish testing single document editing
+- [ ] Allow turning off creates, renames, updates & deletes within schema
