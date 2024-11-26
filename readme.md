@@ -110,3 +110,4 @@ npm run deploy
 - [ ] User roles w/ granular permissions (including document versions)
 - [x] Rich text editor
 - [x] Custom mapped array item titles
+- [ ] Prefixes table (folders)
