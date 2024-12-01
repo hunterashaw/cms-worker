@@ -12,8 +12,6 @@ import {
     BoldItalicUnderlineToggles,
     BlockTypeSelect,
     ListsToggle,
-    CreateLink,
-    linkDialogPlugin
 } from '@mdxeditor/editor'
 import '@mdxeditor/editor/style.css'
 

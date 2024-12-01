@@ -35,7 +35,27 @@
     }
 
     .rich-toolbar {
-        @apply !rounded-t-md !rounded-b-none !bg-neutral-300;
+        @apply !rounded-t-md !rounded-b-none !bg-neutral-100 border border-neutral-300;
+    }
+
+    .rich-toolbar button[role="combobox"] {
+        @apply bg-neutral-100 hover:bg-neutral-200 h-7;
+    }
+
+    .rich-toolbar button[role="combobox"] span:first-child {
+        @apply !text-black text-xs;
+    }
+
+    .rich-toolbar button:not([role="combobox"]) {
+        @apply size-7 cursor-pointer;
+    }
+
+    .rich-toolbar button span {
+        @apply flex justify-center;
+    }
+
+    .rich-toolbar button span svg {
+        @apply size-5;
     }
 
     select {
@@ -43,7 +63,7 @@
     }
 
     .grid-header {
-        @apply grid grid-cols-[auto,repeat(1,120px)] rounded-t-md bg-neutral-300 select-none;
+        @apply grid grid-cols-[auto,repeat(1,120px)] rounded-t-md bg-neutral-100 select-none border border-neutral-300;
     }
 
     .grid-header span {
