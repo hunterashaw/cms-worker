@@ -18,11 +18,11 @@ export class Client {
         const request = await fetch('/verification', {
             method: 'post',
             headers: {
-                'content-type': 'application/json'
+                'content-type': 'application/json',
             },
             body: JSON.stringify({
-                email
-            })
+                email,
+            }),
         })
         if (request.ok) return true
         else return false
@@ -32,12 +32,12 @@ export class Client {
         const request = await fetch('/session', {
             method: 'post',
             headers: {
-                'content-type': 'application/json'
+                'content-type': 'application/json',
             },
             body: JSON.stringify({
                 email,
-                verification
-            })
+                verification,
+            }),
         })
         if (request.ok) {
             this.email = email
@@ -65,14 +65,14 @@ export class Client {
         return false
     }
 
-    async listDocuments(model: string, { prefix, limit, after }: { prefix?: string; limit?: number; after?: string }) {
+    async listDocuments({ path, prefix, limit, after }: { path: string; prefix?: string; limit?: number; after?: string }) {
         const params = new URLSearchParams()
         if (prefix) params.append('prefix', prefix)
         if (limit) params.append('limit', limit.toString())
         if (after) params.append('after', after)
 
-        const request = await fetch(`/documents/${model}${params.size ? `?${params.toString()}` : ''}`, {
-            headers: this.headers
+        const request = await fetch(`/documents/${path}${params.size ? `?${params.toString()}` : ''}`, {
+            headers: this.headers,
         })
         if (!request.ok) {
             if (request.status === 401 && this.unauthorized) this.unauthorized()
@@ -80,25 +80,23 @@ export class Client {
         }
 
         const results = (await request.json()) as {
-            name: string
-            created_at: number
-            modified_at: number
-            modified_by: string
-        }[]
-        return { results, last: request.headers.get('x-last') }
+            documents: { name: string; modified_at: number }[]
+            folders: { name: string }[]
+        }
+        return { ...results, last: request.headers.get('x-last') }
     }
 
-    async getDocument(model: string, name: string) {
-        const request = await fetch(`/document/${model}/${name}`, { headers: this.headers })
+    async getDocument({ path, name }: { path: string; name: string }) {
+        const request = await fetch(`/document/${path}/${name}`, { headers: this.headers })
         if (!request.ok) {
             if (request.status === 401 && this.unauthorized) this.unauthorized()
             throw new Error('Get documents failed.')
         }
-        return request.json() as Promise<{ value: any; created_at: number; modified_at: number; modified_by: string }>
+        if (request.headers['content-type'] === 'application/json') return request.json() as Promise<Record<string, any>>
     }
 
-    async documentExists(model: string, name: string) {
-        const request = await fetch(`/document/${model}/${name}`, { method: 'head', headers: this.headers })
+    async documentExists({ path, name }: { path: string; name: string }) {
+        const request = await fetch(`/document/${path}/${name}`, { method: 'head', headers: this.headers })
         if (!request.ok) {
             if (request.status === 404) return false
             if (request.status === 401 && this.unauthorized) this.unauthorized()
@@ -107,94 +105,37 @@ export class Client {
         return true
     }
 
-    async upsertDocument(model: string, name: string, value: any, newName?: string) {
+    async upsertDocument({ path, name, value, blob, newName }: { path: string; name: string; value: any; blob: any; newName?: string }) {
         const params = new URLSearchParams()
         if (name && newName && name !== newName) params.append('rename', newName)
+        let request
 
-        const request = await fetch(
-            `/document/${model}/${name ?? newName}${params.size ? `?${params.toString()}` : ''}`,
-            {
+        if (blob)
+            request = await fetch(`/document/${path}/${name ?? newName}${params.size ? `?${params.toString()}` : ''}`, {
+                method: 'put',
+                headers: { ...value, ...this.headers },
+                body: blob,
+            })
+        else
+            request = await fetch(`/document/${path}/${name ?? newName}${params.size ? `?${params.toString()}` : ''}`, {
                 method: 'put',
                 headers: { 'content-type': 'application/json', ...this.headers },
-                body: JSON.stringify(value)
-            }
-        )
+                body: JSON.stringify(value),
+            })
         if (!request.ok) {
             if (request.status === 401 && this.unauthorized) this.unauthorized()
             throw new Error('Upsert documents failed.')
         }
     }
 
-    async deleteDocument(model: string, name: string) {
-        const request = await fetch(`/document/${model}/${name}`, {
+    async deleteDocument({ path, name }: { path: string; name: string }) {
+        const request = await fetch(`/document/${path}/${name}`, {
             method: 'delete',
-            headers: this.headers
+            headers: this.headers,
         })
         if (!request.ok) {
             if (request.status === 401 && this.unauthorized) this.unauthorized()
             throw new Error('Delete documents failed.')
-        }
-    }
-
-    async listFiles({ prefix, limit, after }: { prefix?: string; limit?: number; after?: string }) {
-        const params = new URLSearchParams()
-        if (prefix) params.append('prefix', prefix)
-        if (limit) params.append('limit', limit.toString())
-        if (after) params.append('after', after)
-
-        const request = await fetch(`/files/${params.size ? `?${params.toString()}` : ''}`, { headers: this.headers })
-        if (!request.ok) {
-            if (request.status === 401 && this.unauthorized) this.unauthorized()
-            throw new Error('List files failed.')
-        }
-        const results = (await request.json()) as {
-            name: string
-            created_at: number
-            modified_at: number
-            modified_by: string
-        }[]
-        return { results, last: request.headers.get('x-last') }
-    }
-
-    async getFile(key: string) {
-        const request = await fetch(`/file/${key}`, { headers: this.headers })
-        if (!request.ok) {
-            if (request.status === 401 && this.unauthorized) this.unauthorized()
-            throw new Error('Get file failed.')
-        }
-        return request.blob()
-    }
-
-    async fileExists(key: string) {
-        const request = await fetch(`/file/${key}`, { method: 'head', headers: this.headers })
-        if (!request.ok) {
-            if (request.status === 404) return false
-            if (request.status === 401 && this.unauthorized) this.unauthorized()
-            throw new Error('File exists failed.')
-        }
-        return true
-    }
-
-    async upsertFile(key: string, file: File) {
-        const request = await fetch(`/file/${key}`, {
-            method: 'put',
-            headers: { 'content-type': file.type || 'application/octet-stream', ...this.headers },
-            body: file
-        })
-        if (!request.ok) {
-            if (request.status === 401 && this.unauthorized) this.unauthorized()
-            throw new Error('Upsert file failed.')
-        }
-    }
-
-    async deleteFile(key: string) {
-        const request = await fetch(`/file/${key}`, {
-            method: 'delete',
-            headers: this.headers
-        })
-        if (!request.ok) {
-            if (request.status === 401 && this.unauthorized) this.unauthorized()
-            throw new Error('Delete file failed.')
         }
     }
 
@@ -214,7 +155,7 @@ export class Client {
         const request = await fetch(`/user/`, {
             method: 'post',
             headers: { 'content-type': 'application/json', ...this.headers },
-            body: JSON.stringify({ email })
+            body: JSON.stringify({ email }),
         })
         if (!request.ok) {
             if (request.status === 401 && this.unauthorized) this.unauthorized()
@@ -227,7 +168,7 @@ export class Client {
         params.append('email', email)
         const request = await fetch(`/user/?${params}`, {
             method: 'delete',
-            headers: this.headers
+            headers: this.headers,
         })
         if (!request.ok) {
             if (request.status === 401 && this.unauthorized) this.unauthorized()
@@ -239,7 +180,7 @@ export class Client {
 export const client = new Client()
 
 export type Model = {
-    name: string
+    path: string
     key?: string
     schema: ObjectSchema | ((value: any) => ObjectSchema)
     previewURL?: (document: { model: string; name: string; value: any }) => string | undefined
@@ -249,27 +190,25 @@ const initialParams = Object.fromEntries(new URLSearchParams(window.location.sea
 
 declare global {
     interface Window {
-        cms: { name: string | undefined; model: string }
+        cms: { name: string | undefined; path: string }
     }
 }
 
-export default function App({ models }: { models: Model[] }) {
+export default function App({ models, rootFolders }: { models: Model[]; rootFolders: string[] }) {
     const [authenticated, setAuthenticated] = useState<boolean | undefined>(undefined)
-    const [model, setModel] = useState<string>(initialParams?.model ?? models[0]?.name ?? '')
+    const [path, setPath] = useState<string>(initialParams?.path ?? '')
     const [name, setName] = useState<string | undefined>(initialParams?.name)
 
     useEffect(() => {
         const params = new URLSearchParams()
-        if (model) params.append('model', model)
+        if (path) params.append('path', path)
         if (name) params.append('name', name)
-        window.history.pushState({ model, name }, '', `${window.location.pathname}?${params.toString()}`)
+        window.history.pushState({ path, name }, '', `${window.location.pathname}?${params.toString()}`)
 
-        window.cms = { name, model }
-    }, [model, name])
+        window.cms = { name, path }
+    }, [path, name])
 
     useEffect(() => {
-        if (models.some(model => ['users', 'files'].includes(model.name)))
-            alert('Models cannot contain "users" or "files" models (these are used internally).')
         client.getSession().then(value => {
             setAuthenticated(value)
             client.unauthorized = () => {
@@ -278,7 +217,7 @@ export default function App({ models }: { models: Model[] }) {
         })
 
         const updateNavigation = (e: PopStateEvent) => {
-            setModel(e.state?.model)
+            setPath(e.state?.path)
             setName(e.state?.name)
         }
         window.addEventListener('popstate', updateNavigation)
@@ -321,9 +260,9 @@ export default function App({ models }: { models: Model[] }) {
                 <div className="h-full min-h-screen grid grid-rows-[max-content,auto]">
                     <Header {...{ setAuthenticated }} />
                     {name === undefined ? (
-                        <Documents {...{ model, setModel, setName, models }} />
+                        <Documents {...{ path, setPath, setName, models, rootFolders }} />
                     ) : (
-                        <Editor {...{ model, name, setName, models }} />
+                        <Editor {...{ path, name, setName, models }} />
                     )}
                 </div>
             )}

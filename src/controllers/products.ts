@@ -2,6 +2,7 @@ import { ModelController } from '../worker'
 
 /** Example BigCommerce Products Controller */
 export const productsController: ModelController = {
+    path: 'products/*',
     async list({ prefix, limit, after }, { environment: { BIGCOMMERCE_HASH, BIGCOMMERCE_TOKEN } }) {
         if (!BIGCOMMERCE_HASH || !BIGCOMMERCE_TOKEN) throw new Error('BigCommerce credentials are missing.')
         const store = new BigCommerceStore(BIGCOMMERCE_HASH, BIGCOMMERCE_TOKEN)
