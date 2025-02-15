@@ -8,18 +8,17 @@ A minimal, headless CMS (with live preview) that can be effortlessly self-hosted
 
 A full CRUD UI & API for:
 
-- :construction_worker: **Users**
-    - Built-in passwordless & API-token authentication
-    - Uses [Resend](https://resend.com/) for verification emails
-- :toolbox: **Models**
-    - Define your data using [JSON-schema](https://json-schema.org/)
-    - Reference other documents/files/users within your schema
-    - Live-preview data within your own websites/apps
-    - Build custom controllers to integrate with 3rd party systems (ecommerce, bloging, other 3rd party CMSs)
-    - Built on [Cloudflare D1](https://www.cloudflare.com/developer-platform/products/d1/)
-- :file_folder: **Files**
-    - Store any file for hosting / referencing within your data
-    - Built on [Cloudflare R2](https://www.cloudflare.com/developer-platform/products/r2/)
+-   :construction_worker: **Users**
+    -   Built-in passwordless & API-token authentication
+    -   Uses [Resend](https://resend.com/) for verification emails
+-   :toolbox: **Models**
+    -   Define your data using [JSON-schema](https://json-schema.org/)
+    -   Live-preview data within your own websites/apps
+    -   Build custom controllers to integrate with 3rd party systems (ecommerce, bloging, other 3rd party CMSs)
+    -   Built on [Cloudflare D1](https://www.cloudflare.com/developer-platform/products/d1/)
+-   :file_folder: **Files**
+    -   Store any file for hosting
+    -   Built on [Cloudflare R2](https://www.cloudflare.com/developer-platform/products/r2/)
 
 ## Setup
 
@@ -53,19 +52,21 @@ Models are defined within `src/config.ts`.
 
 Model schema accepts a restricted set of [JSON-schema](https://json-schema.org/) using the following rules:
 
- - Model `schema` must be an `object`
- - Objects
-    - Can have any `string` / `number` / `boolean` / `array` / `object` properties
-    - Properties can have `title`s and `description`s for annotation
-    - Properties can also have a `default` value
- - Strings
-    - Can have optional `'date-time'`, `'markdown'`, or `'uri'` `format`
-    - References to other documents/files/users are implemented using `format: 'uri', model: modelName` where `modelName` is either `'files'`, `'users'`, or any other model name
- - Arrays
-    - Can only have an `object` `items` type
-    - Can also have an `{ anyof: ObjectSchema[] }` `items` type for 'block-style' content
+-   Model `schema` must be an `object`
+-   Objects
+    -   Can have any `string` / `number` / `boolean` / `array` / `object` properties
+    -   Properties can have `title`s and `description`s for annotation
+    -   Properties can also have a `default` value
+-   Strings
+    -   Can have optional `'date-time'` or `'markdown'` `format`
+-   Arrays
+    -   Can only have an `object` or `{ anyof: ObjectSchema[] }` (for block-style content) `items`
 
 > All document data is **loosely typed**. Object structure is built during editing as-needed to allow for flexibility. Always use optional chaining (?.) to access properties of document data.
+
+### Markdown Editor
+
+String properties with the `format: 'markdown'`, will display using the [MDX Editor](https://mdxeditor.dev/) with a set of plugins for basic formatting, creating links and uploading images.
 
 ### Live Preview
 
@@ -80,8 +81,6 @@ Custom controllers can be defined within the `const controllers` in `worker.ts`,
 Any model name that doesn't match with a key will use the `default` controller, which just persists the document to the D1 database.
 
 This can be used to integrate the CMS with 3rd party systems like ecommerce platforms. Custom controllers can be combined with the default controller to persist/combine data in both 3rd party systems & the D1 database.
-
-See `controllers/products.ts` for an example controller that integrates with the BigCommerce Catalog API (note that a compatible schema is also required).
 
 ### Development
 
@@ -101,16 +100,14 @@ npm run deploy
 
 ## Feature Roadmap
 
-- [x] Dynamic model schema (accept schema generator function)
-- [ ] Session device fingerprinting (IP + user agent hash)
-- [ ] Import/export CSV & JSON files within client
-- [ ] Document versions (change merging)
-- [ ] Pre-built React hooks for live preview (new module?)
-- [ ] Caching (w/ invalidation)
-- [ ] User roles w/ granular permissions (including document versions)
-- [x] Rich text editor
-- [x] Custom mapped array item titles
-- [ ] Prefixes table (folders)
-- [ ] Finish testing single document editing
-- [ ] Allow turning off creates, renames, updates & deletes within schema
-- [ ] Add asc/desc modified_at filter including starting parameter
+-   [x] Dynamic model schema (accept schema generator function)
+-   [x] Session device fingerprinting (IP + user agent hash)
+-   [ ] Import/export CSV & JSON files within client
+-   [ ] Document versions (change merging)
+-   [ ] Caching (w/ invalidation)
+-   [ ] User roles w/ granular permissions (including document versions)
+-   [x] Rich text editor
+-   [x] Custom mapped array item titles
+-   [x] Folders
+-   [x] Allow turning off creates, renames, updates & deletes within schema
+-   [ ] Re-implement document references properly

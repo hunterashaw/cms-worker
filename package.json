@@ -23,7 +23,7 @@
     },
     "scripts": {
         "start": "run-p watch-client watch-style dev",
-        "watch-client": "esbuild src/client.tsx --bundle --outfile=public/client.js --jsx=automatic --watch --minify --sourcemap=external",
+        "watch-client": "esbuild src/client.tsx --bundle --outdir=public --jsx=automatic --watch --minify --sourcemap=external",
         "watch-style": "npx tailwindcss -i ./src/style.css -o ./public/style.css --watch --minify",
         "dev": "npx wrangler dev --port 3000",
         "migrate": "npx wrangler d1 execute DB --local --file=./schema.sql",

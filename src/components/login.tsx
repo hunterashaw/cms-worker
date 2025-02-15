@@ -5,7 +5,7 @@ export default function Login({ setAuthenticated }: { setAuthenticated: (value: 
     const [loading, setLoading] = useState<boolean>(false)
     const [error, setError] = useState<string | undefined>()
     const [email, setEmail] = useState<string>('admin@example.com')
-    const [verification, setVerification] = useState<string>('')
+    const [verification, setVerification] = useState<string>('1234')
     const [sending, setSending] = useState<boolean>(false)
     const [verificationMessage, setVerificationMessage] = useState<string>('')
 

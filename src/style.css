@@ -7,7 +7,8 @@
     body {
         margin: 0;
         min-height: 100vh;
-        overscroll-behavior: none;
+        font-family: "Inter", serif;
+        font-optical-sizing: auto;
     }
 
     #root {
@@ -16,12 +17,29 @@
 
     button,
     .button {
-        @apply flex gap-2 items-center px-4 py-2 border border-neutral-300 bg-neutral-100 hover:bg-neutral-200 transition text-sm font-medium rounded-md disabled:opacity-50 disabled:cursor-default select-none cursor-pointer;
+        @apply flex gap-2 items-center px-4 py-2 border border-neutral-300 bg-neutral-100 hover:bg-neutral-200 active:bg-neutral-300 transition text-sm font-medium rounded-md disabled:opacity-50 disabled:cursor-default select-none cursor-pointer;
+    }
+
+    .action-button {
+        @apply px-4 text-xs font-normal h-max;
+    }
+
+    *:focus-visible {
+        @apply outline-2 outline-blue-500;
+    }
+
+    select:focus-visible {
+        box-shadow: 0 0 0 2px;
+        @apply shadow-blue-500;
+    }
+
+    label {
+        @apply select-none;
     }
 
     input,
     .input {
-        @apply px-4 py-2 bg-white text-sm rounded-md border border-neutral-300;
+        @apply px-4 py-2 bg-white text-sm rounded-md border border-neutral-300 disabled:bg-transparent disabled:text-neutral-500 accent-blue-500;
     }
 
     [contenteditable='true'] {
@@ -59,11 +77,11 @@
     }
 
     select {
-        @apply px-4 py-2 text-sm rounded-md outline outline-1 outline-neutral-300 border-r-[1rem] border-transparent;
+        @apply px-4 py-2 text-sm rounded-md outline outline-1 outline-neutral-300 focus-within:shadow-sm border-r-[1rem] border-transparent;
     }
 
     .grid-header {
-        @apply grid grid-cols-[auto,repeat(1,120px)] rounded-t-md bg-neutral-100 select-none border border-neutral-300;
+        @apply grid grid-cols-[auto] rounded-t-md bg-neutral-100 select-none border border-neutral-300;
     }
 
     .grid-header span {
@@ -71,10 +89,6 @@
     }
 
     .grid-row {
-        @apply grid grid-cols-[auto,repeat(1,120px)] bg-white hover:bg-neutral-100 transition border border-t-0 border-x-neutral-300 border-b-neutral-200 last:border-b-neutral-300 last:rounded-b-md items-center cursor-pointer;
-    }
-
-    .grid-row > span {
-        @apply truncate px-4 py-2 text-xs first:text-sm flex gap-2 items-center;
+        @apply grid grid-cols-[auto,max-content] bg-white hover:bg-neutral-200 transition border border-t-0 first:border-t border-x-neutral-300 border-y-neutral-200 first:border-t-neutral-300 last:border-b-neutral-300 first:rounded-t-md last:rounded-b-md items-center cursor-pointer;
     }
 }
