@@ -20,7 +20,7 @@ export default function Login({ setAuthenticated }: { setAuthenticated: (value: 
     }, [setSending, setVerificationMessage, email])
 
     return (
-        <div className="h-full p-8 flex justify-center">
+        <div className="h-full p-4 md:p-8 flex justify-center">
             <form
                 className="flex flex-col gap-2 w-full max-w-80"
                 onSubmit={async e => {

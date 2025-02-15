@@ -61,7 +61,7 @@ export default function Documents({
     const hasFilter = useMemo(() => folder || prefix, [folder, prefix])
 
     return (
-        <div className="flex flex-col md:grid md:grid-cols-[max-content,auto]">
+        <div className="flex flex-col md:grid md:grid-cols-[max-content,auto] max-w-[100vw]">
             <div className="p-4">
                 <div className="grid lg:min-w-48">
                     {models.map(({ name, category, icon }) => {

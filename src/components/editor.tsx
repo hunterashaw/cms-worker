@@ -203,8 +203,8 @@ export default function Editor({
     useEffect(previewUpdate, [newName, previewFrame, previewing, document, newFolder])
 
     return (
-        <div className="flex flex-col lg:grid lg:grid-cols-[max-content,auto] min-h-full">
-            {!previewing && <div className="p-4 flex flex-col gap-2"></div>}
+        <div className="flex flex-col lg:grid lg:grid-cols-[max-content,auto] min-h-full max-w-[100vw]">
+            {!previewing && <div></div>}
             <div
                 className={clsx('p-4 flex justify-center', previewing && 'max-w-md border-b lg:border-b-0 lg:border-r border-neutral-300')}
             >
