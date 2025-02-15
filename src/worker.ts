@@ -144,7 +144,10 @@ router.delete(`/session`, async (parameters: Parameters) => {
     if (!parameters.user) return responses.unauthorized
 
     const { session } = parse(parameters.headers?.cookie ?? '')
-    if (session) return responses.success(await parameters.environment.DB.prepare('delete from sessions where key = ?').bind(session).run())
+    if (session)
+        return responses.success(
+            await parameters.environment.DB.prepare('delete from sessions where key = ?').bind(`${session}${parameters.ip}`).run()
+        )
     return responses.badRequest()
 })
 

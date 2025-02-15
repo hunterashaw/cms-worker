@@ -1,5 +1,8 @@
 import React, { useCallback, useState } from 'react'
 import { client } from './app'
+import { vars as environment } from '../../wrangler.json'
+
+const DEMO = environment?.DEMO
 
 export default function Login({ setAuthenticated }: { setAuthenticated: (value: boolean) => void }) {
     const [loading, setLoading] = useState<boolean>(false)
@@ -49,13 +52,14 @@ export default function Login({ setAuthenticated }: { setAuthenticated: (value: 
                                 sendVerification()
                             }
                         }}
+                        disabled={DEMO}
                     />
                 </label>
                 <div className="grid grid-cols-[auto,max-content] gap-2 mt-2 items-center">
                     <span className="text-xs pl-2 font-medium">{verificationMessage}</span>
                     <button
                         type="button"
-                        disabled={sending}
+                        disabled={DEMO || sending}
                         onClick={async e => {
                             e.preventDefault()
                             sendVerification()
@@ -75,6 +79,7 @@ export default function Login({ setAuthenticated }: { setAuthenticated: (value: 
                             // @ts-ignore
                             e.target.select()
                         }}
+                        disabled={DEMO}
                         onChange={e => setVerification(e.target.value)}
                     />
                 </label>
